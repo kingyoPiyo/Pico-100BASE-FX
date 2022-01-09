@@ -12,6 +12,23 @@
 #define DEF_TX_BUF_SIZE     (72)
 
 
+static uint32_t crc_table[256];
+
+
+void make_crc_table(void)
+{
+    uint32_t i, j, c;
+
+    for (i = 0; i < 256; i++)
+    {
+        for (j = 0, c = i; j < 8; j++)
+        {
+            c = c & 1 ? (c >> 1) ^ 0xEDB88320 : (c >> 1);
+        }
+        crc_table[i] = c;
+    }
+}
+
 
 static void udp_packet_gen(uint32_t *buf, uint32_t in_data)
 {
@@ -182,16 +199,10 @@ static void udp_packet_gen(uint32_t *buf, uint32_t in_data)
     uint32_t crc = 0xffffffff;
     for (i = 16; i < idx; i+=2)
     {
-        crc ^= (data_4b[i+1] << 4) + data_4b[i];
-
-        for (uint32_t k = 0; k < 8; k++)
-        {
-            crc = crc & 1 ? (crc >> 1) ^ 0xedb88320 : (crc >> 1);
-        }
+        crc = (crc >> 8) ^ crc_table[(crc ^ ((data_4b[i+1] << 4) + data_4b[i])) & 0xFF];
     }
     crc ^= 0xffffffff;
 
-    // FCS
     data_4b[idx++] = (crc >>  0) & 0xF;
     data_4b[idx++] = (crc >>  4) & 0xF;
     data_4b[idx++] = (crc >>  8) & 0xF;
@@ -253,6 +264,8 @@ int main()
     set_sys_clock_khz(250000, true);
     tx_program_init(pio, sm, offset, DEF_TX_PIN);
 
+    make_crc_table();
+
     // init
     udp_packet_gen(tx_buf, lp_cnt);
     
@@ -270,5 +283,4 @@ int main()
 
         //sleep_ms(100);
     }
-
 }
