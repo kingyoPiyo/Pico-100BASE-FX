@@ -56,8 +56,8 @@ static void udp_packet_gen(uint32_t *buf, uint32_t in_data)
 
     //////////////////////////////////////////////////////
 
-    uint8_t     data_4b[DEF_TX_BUF_SIZE * 2];
-    uint8_t     data_5b[DEF_TX_BUF_SIZE * 2];
+    uint8_t     data_4b[DEF_TX_BUF_SIZE*2];
+    uint8_t     data_5b[(DEF_TX_BUF_SIZE*2)+4];
     uint32_t    i;
     uint32_t    idx = 0;
 
@@ -201,6 +201,8 @@ static void udp_packet_gen(uint32_t *buf, uint32_t in_data)
     data_4b[idx++] = (crc >> 24) & 0xF;
     data_4b[idx++] = (crc >> 28) & 0xF;
 
+    // idx = 144
+
     /////////////////////////////////////////////////
     // Encording 4b5b
     /////////////////////////////////////////////////
@@ -212,48 +214,37 @@ static void udp_packet_gen(uint32_t *buf, uint32_t in_data)
     data_5b[i++] = 0b01101; // T
     data_5b[i++] = 0b00111; // R
     data_5b[i++] = 0b11111; // IDLE
+    data_5b[i++] = 0b11111; // IDLE
 
     /////////////////////////////////////////////////
     // NRZI Encoder
     /////////////////////////////////////////////////
+    const uint32_t tbl_nrzi[64] = {
+         0, 16, 24,  8, 28, 12,  4, 20, 30, 14,  6, 22,  2, 18, 26, 10,
+        31, 15,  7, 23,  3, 19, 27, 11,  1, 17, 25,  9, 29, 13,  5, 21,
+        31, 15,  7, 23,  3, 19, 27, 11,  1, 17, 25,  9, 29, 13,  5, 21,
+         0, 16, 24,  8, 28, 12,  4, 20, 30, 14,  6, 22,  2, 18, 26, 10
+    };
+
     uint32_t j = 0;
     uint8_t old_bit = 0;
     uint32_t ans;
 
-    for (i = 0; i < DEF_TX_BUF_SIZE * 2; i += 2)
+    for (i = 0; i < (DEF_TX_BUF_SIZE*2)+4; i += 2)
     {
-        ans = 0;
-
-        old_bit =  old_bit ^ ((data_5b[i] >> 4) & 0x01);
-        ans |= old_bit << 0;
-        old_bit =  old_bit ^ ((data_5b[i] >> 3) & 0x01);
-        ans |= old_bit << 1;
-        old_bit =  old_bit ^ ((data_5b[i] >> 2) & 0x01);
-        ans |= old_bit << 2;
-        old_bit =  old_bit ^ ((data_5b[i] >> 1) & 0x01);
-        ans |= old_bit << 3;
-        old_bit =  old_bit ^ ((data_5b[i] >> 0) & 0x01);
-        ans |= old_bit << 4;
-
-        old_bit =  old_bit ^ ((data_5b[i+1] >> 4) & 0x01);
-        ans |= old_bit << 5;
-        old_bit =  old_bit ^ ((data_5b[i+1] >> 3) & 0x01);
-        ans |= old_bit << 6;
-        old_bit =  old_bit ^ ((data_5b[i+1] >> 2) & 0x01);
-        ans |= old_bit << 7;
-        old_bit =  old_bit ^ ((data_5b[i+1] >> 1) & 0x01);
-        ans |= old_bit << 8;
-        old_bit =  old_bit ^ ((data_5b[i+1] >> 0) & 0x01);
-        ans |= old_bit << 9;
+        ans  = tbl_nrzi[(old_bit << 5) + data_5b[i]];
+        ans |= tbl_nrzi[((ans >> 4) << 5) + data_5b[i+1]] << 5;
+        old_bit = ans >> 9;
 
         buf[j] = ans;
         j++;
     }
 }
 
+
 int main()
 {
-    uint32_t tx_buf[DEF_TX_BUF_SIZE];
+    uint32_t tx_buf[DEF_TX_BUF_SIZE+2];
     uint32_t lp_cnt = 0;
     PIO pio = pio0;
     uint sm = 0;
@@ -268,7 +259,7 @@ int main()
     while (true)
     {
         // Send Ethernet Frame
-        for (uint32_t i = 0; i < DEF_TX_BUF_SIZE; i++)
+        for (uint32_t i = 0; i < DEF_TX_BUF_SIZE+2; i++)
         {
             tx_10b(pio, sm, tx_buf[i]);
         }
