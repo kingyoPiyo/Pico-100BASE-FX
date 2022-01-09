@@ -17,12 +17,9 @@ static uint32_t crc_table[256];
 
 void make_crc_table(void)
 {
-    uint32_t i, j, c;
-
-    for (i = 0; i < 256; i++)
-    {
-        for (j = 0, c = i; j < 8; j++)
-        {
+    for (uint32_t i = 0; i < 256; i++) {
+        uint32_t c = i;
+        for (uint32_t j = 0; j < 8; j++) {
             c = c & 1 ? (c >> 1) ^ 0xEDB88320 : (c >> 1);
         }
         crc_table[i] = c;
@@ -72,21 +69,17 @@ static void udp_packet_gen(uint32_t *buf, uint32_t in_data)
                                   0b10010, 0b10011, 0b10110, 0b10111, 0b11010, 0b11011, 0b11100, 0b11101};
 
     //////////////////////////////////////////////////////
-
     uint8_t     data_4b[DEF_TX_BUF_SIZE*2];
     uint8_t     data_5b[(DEF_TX_BUF_SIZE*2)+4];
-    uint32_t    i;
-    uint32_t    idx = 0;
-
+    uint8_t     ob;
+    uint32_t    i, j, idx = 0, ans;
 
     // Preamble
     for (i = 0; i < 15; i++) {
         data_4b[idx++] = 0x05;
     }
-
     // SFD
     data_4b[idx++] = 0x0d;
-
     // Destination MAC Address
     data_4b[idx++] = (dst_mac >> 40) & 0x0F;
     data_4b[idx++] = (dst_mac >> 44) & 0x0F;
@@ -197,8 +190,7 @@ static void udp_packet_gen(uint32_t *buf, uint32_t in_data)
     // FCS Cals
     ///////////////////////////////////////////////////
     uint32_t crc = 0xffffffff;
-    for (i = 16; i < idx; i+=2)
-    {
+    for (i = 16; i < idx; i+=2) {
         crc = (crc >> 8) ^ crc_table[(crc ^ ((data_4b[i+1] << 4) + data_4b[i])) & 0xFF];
     }
     crc ^= 0xffffffff;
@@ -237,18 +229,11 @@ static void udp_packet_gen(uint32_t *buf, uint32_t in_data)
          0, 16, 24,  8, 28, 12,  4, 20, 30, 14,  6, 22,  2, 18, 26, 10
     };
 
-    uint32_t j = 0;
-    uint8_t old_bit = 0;
-    uint32_t ans;
-
-    for (i = 0; i < (DEF_TX_BUF_SIZE*2)+4; i += 2)
-    {
-        ans  = tbl_nrzi[(old_bit << 5) + data_5b[i]];
+    for (i = 0, j = 0, ob = 0; i < (DEF_TX_BUF_SIZE*2)+4; i += 2) {
+        ans  = tbl_nrzi[(ob << 5) + data_5b[i]];
         ans |= tbl_nrzi[((ans >> 4) << 5) + data_5b[i+1]] << 5;
-        old_bit = ans >> 9;
-
-        buf[j] = ans;
-        j++;
+        ob = ans >> 9;
+        buf[j++] = ans;
     }
 }
 
