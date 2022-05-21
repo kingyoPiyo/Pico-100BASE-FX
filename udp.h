@@ -8,6 +8,8 @@
 
 #include <stdint.h>
 
+#define DEF_TX_BUF_SIZE     (72)
+
 void udp_init(void);
 void udp_packet_init(uint32_t *buf, uint32_t in_data);
 void udp_payload_update(uint32_t *buf, uint32_t in_data);
