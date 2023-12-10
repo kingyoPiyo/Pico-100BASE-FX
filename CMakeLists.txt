@@ -19,5 +19,7 @@ target_link_libraries(${target_name} PRIVATE
     hardware_dma
     hardware_irq
     )
+    
+#pico_set_binary_type(${target_name} copy_to_ram)
 
 pico_add_extra_outputs(${target_name})
