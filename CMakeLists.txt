@@ -8,7 +8,7 @@ pico_sdk_init()
 set(target_name pico-100base-fx)
 add_executable(${target_name})
 
-pico_generate_pio_header(${target_name} ${CMAKE_CURRENT_LIST_DIR}/tx.pio)
+pico_generate_pio_header(${target_name} ${CMAKE_CURRENT_LIST_DIR}/ser_100base_fx.pio)
 
 target_sources(${target_name} PRIVATE main.c udp.c)
 

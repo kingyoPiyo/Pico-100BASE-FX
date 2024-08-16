@@ -4,10 +4,11 @@
 * Design   : kingyo
 ********************************************************/
 #include "pico/stdlib.h"
+#include "hardware/clocks.h"
 #include "hardware/pio.h"
 //#include "hardware/irq.h"
 #include "hardware/dma.h"
-#include "tx.pio.h"
+#include "ser_100base_fx.pio.h"
 #include <stdint.h>
 #include "udp.h"
 
@@ -27,10 +28,10 @@ int main()
     uint32_t lp_cnt = 0;
     PIO pio_ser_wr = pio0;
     uint sm = 0;
-    uint offset = pio_add_program(pio_ser_wr, &tx_program);
+    uint offset = pio_add_program(pio_ser_wr, &ser_100base_fx_program);
 
     set_sys_clock_khz(250000, true);
-    tx_program_init(pio_ser_wr, sm, offset, DEF_TX_PIN);
+    ser_100base_fx_program_init(pio_ser_wr, sm, offset, DEF_TX_PIN);
 
     udp_init();
     udp_packet_init(tx_buf[0], lp_cnt);
